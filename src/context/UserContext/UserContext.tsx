@@ -1,19 +1,20 @@
-import { createContext, ReactNode, useContext, useState } from "react"
-import { User } from "firebase/auth"
+import { createContext, ReactNode, useContext, useState } from 'react'
+import { User } from 'firebase/auth'
 
+/* interfaces */
 interface UserType {
-  uid:    string
-  email:  string | null
+  uid: string
+  email: string | null
   tokens: {
-    access:  string
+    access: string
     refresh: string
   }
 }
 
 export interface UserContextValue extends UserType {
   isAuthenticated: () => boolean
-  save:            (userInfo: User) => void
-  clear:           () => void
+  save: (userInfo: User) => void
+  clear: () => void
 }
 
 interface Props {
@@ -24,55 +25,65 @@ interface Props {
 const UserContext = createContext<UserContextValue | undefined>(undefined)
 
 /* static methods */
-function read(): UserType | {} {
+function read(): UserType | Record<string, never> {
   try {
-    const dataStr = localStorage.getItem("userInfo")
+    const dataStr = localStorage.getItem('userInfo')
     if (!dataStr) return {}
 
     const data = JSON.parse(dataStr)
 
     // Безопасная проверка наличия необходимых свойств
-    if (!data || typeof data !== "object") return {}
+    if (!data || typeof data !== 'object') return {}
 
     // Проверяем наличие stsTokenManager и его свойств
-    const hasValidTokens = data.stsTokenManager && 
-                          typeof data.stsTokenManager === 'object' &&
-                          data.stsTokenManager.accessToken &&
-                          data.stsTokenManager.refreshToken
+    const hasValidTokens = data.stsTokenManager
+      && typeof data.stsTokenManager === 'object'
+      && data.stsTokenManager.accessToken
+      && data.stsTokenManager.refreshToken
 
     if (!hasValidTokens) return {}
 
     const userInfo: UserType = {
-      uid:    data.uid || '',
-      email:  data.email || null,
+      uid: data.uid || '',
+      email: data.email || null,
       tokens: {
-        access:  data.stsTokenManager.accessToken,
+        access: data.stsTokenManager.accessToken,
         refresh: data.stsTokenManager.refreshToken,
       },
     }
 
     return userInfo
   } catch (error) {
-    console.error("Error reading user info from localStorage:", error)
+    console.error('Error reading user info from localStorage:', error)
     return {}
   }
 }
 
 /* provider */
+
 export function UserProvider({ children }: Props) {
-  const [data, setData] = useState<UserType | {}>(read())
+  const [data, setData] = useState<UserType | Record<string, never>>(read())
 
   function isAuthenticated() {
     return Boolean(data && 'email' in data && data.email)
   }
 
   function save(userInfo: User) {
-    localStorage.setItem("userInfo", JSON.stringify(userInfo))
-    setData(userInfo)
+    localStorage.setItem('userInfo', JSON.stringify(userInfo))
+    // Исправляем ошибку типизации - преобразуем User в нужный формат
+    const userData: UserType = {
+      uid: userInfo.uid,
+      email: userInfo.email,
+      tokens: {
+        access: userInfo.stsTokenManager?.accessToken || '',
+        refresh: userInfo.stsTokenManager?.refreshToken || '',
+      },
+    }
+    setData(userData)
   }
 
   function clear() {
-    localStorage.removeItem("userInfo")
+    localStorage.removeItem('userInfo')
     setData({})
   }
 
@@ -82,25 +93,28 @@ export function UserProvider({ children }: Props) {
     email: 'email' in data ? data.email : null,
     tokens: {
       access: 'tokens' in data ? data.tokens.access : '',
-      refresh: 'tokens' in data ? data.tokens.refresh : ''
+      refresh: 'tokens' in data ? data.tokens.refresh : '',
     },
     isAuthenticated,
     save,
-    clear
+    clear,
   }
 
   return (
-    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
+    <UserContext.Provider value={contextValue}>
+      {children}
+    </UserContext.Provider>
   )
 }
 
-/* hooks */
-
+// Выносим хук в отдельный файл
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUserContext() {
   const context = useContext(UserContext)
 
-  if (!context)
-    throw new Error("useUserContext must be used within UserProvider")
+  if (!context) {
+    throw new Error('useUserContext must be used within UserProvider')
+  }
 
   return context
 }
