@@ -1,19 +1,15 @@
 import { createContext, ReactNode, useContext, useState } from "react"
-import { User } from "firebase/auth"
 
 /* interfaces */
 interface UserType {
   uid: string
   email: string | null
-  tokens: {
-    access: string
-    refresh: string
-  }
+  token: string
 }
 
 export interface UserContextValue extends UserType {
   isAuthenticated: () => boolean
-  save: (userInfo: User) => void
+  save: (token: string, email: string) => void
   clear: () => void
 }
 
@@ -25,78 +21,56 @@ interface Props {
 const UserContext = createContext<UserContextValue | undefined>(undefined)
 
 /* static methods */
-function read(): UserType | Record<string, never> {
+function read(): UserType | null {
   try {
-    const dataStr = localStorage.getItem("userInfo")
-    if (!dataStr) return {}
+    const token = localStorage.getItem('authToken')
+    const email = localStorage.getItem('userEmail')
 
-    const data = JSON.parse(dataStr)
+    if (!token || !email) return null
 
-    // Безопасная проверка наличия необходимых свойств
-    if (!data || typeof data !== "object") return {}
-
-    // Проверяем наличие stsTokenManager и его свойств (исправлено stsTokenManager)
-    const stsTokenManager = (data as any).stsTokenManager
-    const hasValidTokens = stsTokenManager && 
-                          typeof stsTokenManager === "object" &&
-                          stsTokenManager.accessToken &&
-                          stsTokenManager.refreshToken
-
-    if (!hasValidTokens) return {}
-
-    const userInfo: UserType = {
-      uid: data.uid || "",
-      email: data.email || null,
-      tokens: {
-        access: stsTokenManager.accessToken,
-        refresh: stsTokenManager.refreshToken,
-      },
+    return {
+      uid: email,
+      email: email,
+      token: token,
     }
-
-    return userInfo
   } catch (error) {
-    console.error("Error reading user info from localStorage:", error)
-    return {}
+    console.error("Error reading user info from storage:", error)
+    return null
   }
 }
 
 /* provider */
 export function UserProvider({ children }: Props) {
-  const [data, setData] = useState<UserType | Record<string, never>>(read())
+  const [data, setData] = useState<UserType | null>(read())
 
-  function isAuthenticated() {
-    return Boolean(data && "email" in data && data.email)
+  function isAuthenticated(): boolean {
+    return Boolean(data && data.token)
   }
 
-  function save(userInfo: User) {
-    localStorage.setItem("userInfo", JSON.stringify(userInfo))
+  function save(token: string, email: string): void {
+    localStorage.setItem('authToken', token)
+    localStorage.setItem('userEmail', email)
 
-    // Преобразуем User в UserType (исправление ошибки типизации)
     const userData: UserType = {
-      uid: userInfo.uid,
-      email: userInfo.email,
-      tokens: {
-        access: (userInfo as any).stsTokenManager?.accessToken || "",
-        refresh: (userInfo as any).stsTokenManager?.refreshToken || "",
-      },
+      uid: email,
+      email: email,
+      token: token,
     }
-    
+
     setData(userData)
   }
 
-  function clear() {
-    localStorage.removeItem("userInfo")
-    setData({})
+  function clear(): void {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('userEmail')
+    setData(null)
   }
 
-  // Создаем безопасное значение для контекста (исправление spread оператора)
+  // Создаем безопасное значение для контекста
   const contextValue: UserContextValue = {
-    uid: "uid" in data ? data.uid : "",
-    email: "email" in data ? data.email : null,
-    tokens: {
-      access: "tokens" in data ? data.tokens.access : "",
-      refresh: "tokens" in data ? data.tokens.refresh : "",
-    },
+    uid: data?.uid || "",
+    email: data?.email || null,
+    token: data?.token || "",
     isAuthenticated,
     save,
     clear,
@@ -110,14 +84,13 @@ export function UserProvider({ children }: Props) {
 }
 
 /* hooks */
-
-// Выносим хук в отдельный файл или добавляем disable комментарий
 // eslint-disable-next-line react-refresh/only-export-components
-export function useUserContext() {
+export function useUserContext(): UserContextValue {
   const context = useContext(UserContext)
 
-  if (!context)
+  if (!context) {
     throw new Error("useUserContext must be used within UserProvider")
+  }
 
   return context
 }

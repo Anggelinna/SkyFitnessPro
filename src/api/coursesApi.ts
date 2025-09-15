@@ -5,13 +5,12 @@ import type { CoursesType, CourseType, WorkoutsType, WorkoutType } from "../type
 import type { UserExercisesDataType, UserDataType, UserWorkoutDataType } from "../types/types"
 import { fillUserFieldsInCourse, getProgressInsideUserData } from "../utils/progress"
 
-
 export const coursesAPI = {
   // reading methods
 
   async getCourses(userId: string): Promise<CoursesType> {
     try {
-      const path     = "courses"
+      const path = "courses"
       const snapshot = await get(ref(db, path))
 
       if (!snapshot.exists())
@@ -23,11 +22,11 @@ export const coursesAPI = {
       if (userId) {
         const workoutsData = await coursesAPI.getWorkouts()
 
-        const path     = `/users/${userId}/courses`
-        const snapshot = await get(ref(db, path))
+        const userPath = `/users/${userId}/courses`
+        const userSnapshot = await get(ref(db, userPath))
 
-        if (snapshot.exists()) {
-          const userData: UserDataType = snapshot.val()
+        if (userSnapshot.exists()) {
+          const userData: UserDataType = userSnapshot.val()
 
           data.forEach((course) => {
             fillUserFieldsInCourse(course, workoutsData, userData)
@@ -44,7 +43,7 @@ export const coursesAPI = {
 
   async getCourse(courseId: string, userId: string): Promise<CourseType | null> {
     try {
-      const path     = `courses/${courseId}`
+      const path = `courses/${courseId}`
       const snapshot = await get(ref(db, path))
 
       if (!snapshot.exists())
@@ -55,11 +54,11 @@ export const coursesAPI = {
       if (userId) {
         const workoutsData = await coursesAPI.getWorkouts()
 
-        const path     = `/users/${userId}/courses`
-        const snapshot = await get(ref(db, path))
+        const userPath = `/users/${userId}/courses`
+        const userSnapshot = await get(ref(db, userPath))
 
-        if (snapshot.exists()) {
-          const userData: UserDataType = snapshot.val()
+        if (userSnapshot.exists()) {
+          const userData: UserDataType = userSnapshot.val()
 
           fillUserFieldsInCourse(data, workoutsData, userData)
         }
@@ -74,7 +73,7 @@ export const coursesAPI = {
 
   async getWorkouts(): Promise<WorkoutsType> {
     try {
-      const path     = "workouts"
+      const path = "workouts"
       const snapshot = await get(ref(db, path))
 
       if (!snapshot.exists())
@@ -89,7 +88,7 @@ export const coursesAPI = {
 
   async getWorkoutsIntoCourse(courseId: string, userId: string): Promise<WorkoutsType> {
     try {
-      const path     = `courses/${courseId}`
+      const path = `courses/${courseId}`
       const snapshot = await get(ref(db, path))
 
       if (!snapshot.exists())
@@ -98,38 +97,51 @@ export const coursesAPI = {
       const workoutsData = await coursesAPI.getWorkouts()
       const courseData = snapshot.val() as CourseType
 
-      const data: WorkoutsType = courseData.workouts.map((workoutId) => (
-        workoutsData.reduce((acc, workout) => workout._id === workoutId ? workout : acc, {})
-      ))
+      // Исправлено: правильное создание WorkoutsType
+      const data: WorkoutsType = courseData.workouts.map((workoutId) => {
+        const workout = workoutsData.find(w => w._id === workoutId)
+        if (!workout) {
+          // Возвращаем минимальный объект WorkoutType если не найден
+          return {
+            _id: workoutId,
+            name: 'Unknown Workout',
+            video: '',
+            courseName: courseData.title,
+            day: courseData.workouts.indexOf(workoutId) + 1,
+            max: 0,
+            progress: 0,
+          }
+        }
+        return workout
+      })
 
       if (userId) {
-        const path     = `/users/${userId}/courses`
-        const snapshot = await get(ref(db, path))
+        const userPath = `/users/${userId}/courses`
+        const userSnapshot = await get(ref(db, userPath))
 
-        if (snapshot.exists()) {
-          const userData: UserDataType = snapshot.val()
+        if (userSnapshot.exists()) {
+          const userData: UserDataType = userSnapshot.val()
 
           for (const workoutData of data) {
             let progress = 0
-            let max      = 0
+            let max = 0
 
-            for (const workout of workoutsData) {
-              if (workout._id !== workoutData._id)
-                continue
-
-              if (workout.exercises)
-                for (const exercise of workout.exercises)
+            const foundWorkout = workoutsData.find(w => w._id === workoutData._id)
+            if (foundWorkout) {
+              if (foundWorkout.exercises) {
+                for (const exercise of foundWorkout.exercises)
                   max += exercise.quantity
-              else
+              } else {
                 max += 1
+              }
 
               progress += getProgressInsideUserData(userData, courseId, workoutData._id)
             }
 
-            workoutData.progress   = progress
-            workoutData.max        = Math.max(max, 1)
+            workoutData.progress = progress
+            workoutData.max = Math.max(max, 1)
             workoutData.courseName = courseData.title
-            workoutData.day        = courseData.workouts.indexOf(workoutData._id) + 1
+            workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
           }
         }
       }
@@ -143,7 +155,7 @@ export const coursesAPI = {
 
   async getWorkout(courseId: string, workoutId: string, userId: string): Promise<WorkoutType | null> {
     try {
-      const path     = `workouts/${workoutId}`
+      const path = `workouts/${workoutId}`
       const snapshot = await get(ref(db, path))
 
       if (!snapshot.exists())
@@ -156,36 +168,40 @@ export const coursesAPI = {
         return workoutData
 
       workoutData.courseName = courseData.title
-      workoutData.day        = courseData.workouts.indexOf(workoutData._id) + 1
+      workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
 
       if (userId) {
-        const path     = `/users/${userId}/courses/${courseId}/workouts/${workoutId}`
-        const snapshot = await get(ref(db, path))
+        const userPath = `/users/${userId}/courses/${courseId}/workouts/${workoutId}`
+        const userSnapshot = await get(ref(db, userPath))
 
-        if (snapshot.exists()) {
-          const userData: UserWorkoutDataType = snapshot.val()
+        if (userSnapshot.exists()) {
+          const userData: UserWorkoutDataType = userSnapshot.val()
 
           let progress = 0
-          let max      = 0
+          let max = 0
 
           if (workoutData.exercises) {
-            if (userData.exercises)
-              for (const exercise of userData.exercises)
-                workoutData.exercises[exercise.index].progress = exercise.progress || 0
+            if (userData.exercises) {
+              for (const exercise of userData.exercises) {
+                if (workoutData.exercises[exercise.index]) {
+                  workoutData.exercises[exercise.index].progress = exercise.progress || 0
+                }
+              }
+            }
 
             for (const exercise of workoutData.exercises) {
-              max      += exercise.quantity
+              max += exercise.quantity
               progress += exercise.progress || 0
             }
           } else {
-            max      = 1
+            max = 1
             progress = userData.progress || 0
           }
 
-          workoutData.progress   = progress
-          workoutData.max        = Math.max(max, 1)
+          workoutData.progress = progress
+          workoutData.max = Math.max(max, 1)
           workoutData.courseName = courseData.title
-          workoutData.day        = courseData.workouts.indexOf(workoutData._id) + 1
+          workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
         }
       }
 
@@ -207,7 +223,7 @@ export const coursesAPI = {
   async removeUserCourse(userId: string, courseId: string) {
     const path = `users/${userId}/courses/${courseId}`
 
-    await set(ref(db, path), { })
+    await set(ref(db, path), null)
   },
 
   async repeatFromBeginUserCourse(userId: string, courseId: string) {

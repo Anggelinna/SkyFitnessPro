@@ -135,7 +135,7 @@ export default function SigningModal({ mode }: Props) {
   )
 }
 
-function ModalContent({ mode, formData, setFormData, errorState, setErrorState, onSwitch, onChange }: ExtendedProps) {
+function ModalContent({ mode, formData, errorState, onSwitch, onChange }: ExtendedProps) {
   return (
     <div className={sharedStyles.modalFormInner}>
       <div className={sharedStyles.modalFormSubgroup}>

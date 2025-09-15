@@ -139,7 +139,6 @@ export const sharedStyles = {
   /* progress */
 
   progress: "progress flex flex-col gap-[10px]",
-  progressText: "progressText",
   progressBar: "progressBar relative h-[6px]",
   progressBarBack: "progressBarBack absolute h-[6px] w-full rounded-[50px] bg-light-bg",
   progressBarFront: "progressBarFront absolute h-[6px] w-[120px] rounded-[50px] bg-work",
