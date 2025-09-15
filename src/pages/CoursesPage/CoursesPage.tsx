@@ -97,8 +97,8 @@ export const CoursesPage: React.FC = () => {
   return (
     <div className="courses-page">
       <header className="courses-header">
-        <h1>Начните заниматься спортом и улучшите качество жизни</h1>
-        <p>Выберите подходящий курс и начните свой путь к здоровому образу жизни</p>
+       <h1>Наши фитнес-курсы</h1>
+        <p>Выберите подходящую программу тренировок для ваших целей</p>
       </header>
       
       <CourseList courses={courses} onCourseSelect={handleCourseSelect} />

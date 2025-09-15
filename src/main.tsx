@@ -1,11 +1,14 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-// Удалите эту строку, если файла нет
-//import './index.css'
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { UserProvider } from "./context/UserContext/UserContext"
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+import App from "./App"
+
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <UserProvider>
+      <App />
+    </UserProvider>
+  </StrictMode>,
 )
