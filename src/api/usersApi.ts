@@ -1,3 +1,16 @@
+import { API_BASE_URL } from './config';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
 export const usersApi = {
   async create(email: string, password: string, name: string): Promise<User> {
     try {

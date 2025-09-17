@@ -6,13 +6,16 @@ interface Props {
   courseId: string
   userId: string
   action: "add" | "remove"
-  onActionComplete?: () => void // Колбэк для обновления состояния после действия
+  onActionComplete?: () => void
 }
 
 function CardAction({ courseId, userId, action, onActionComplete }: Props) {
   const picture = action === "add" ? "plus" : "minus"
 
-  async function handleAction() {
+  async function handleAction(e: React.MouseEvent) {
+    e.preventDefault(); // Предотвращаем поведение по умолчанию
+    e.stopPropagation(); // Останавливаем всплытие события
+
     try {
       if (action === "add") {
         await coursesAPI.addUserCourse(userId, courseId)
@@ -20,7 +23,6 @@ function CardAction({ courseId, userId, action, onActionComplete }: Props) {
         await coursesAPI.removeUserCourse(userId, courseId)
       }
 
-      // Вызываем колбэк для обновления UI вместо перезагрузки страницы
       if (onActionComplete) {
         onActionComplete()
       }

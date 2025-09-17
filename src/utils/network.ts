@@ -1,17 +1,26 @@
-// utils/network.ts
 import { API_BASE_URL } from "../api/config"
 
 export const isBackendAvailable = async (): Promise<boolean> => {
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     })
+
+    clearTimeout(timeoutId)
     return response.ok
   } catch (error) {
-    console.log('Бэкенд недоступен, используем mock данные')
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('Таймаут проверки бэкенда')
+    } else {
+      console.log('Бэкенд недоступен, используем mock данные')
+    }
     return false
   }
 }
@@ -22,35 +31,50 @@ export const checkBackendConnection = async (): Promise<{
   message?: string
 }> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-    })
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId)
 
     return {
       available: response.ok,
       status: response.status,
-      message: response.statusText
+      message: response.statusText,
     }
   } catch (error) {
-    console.log('Бэкенд недоступен:', error)
+    let errorMessage = 'Unknown error'
+
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        errorMessage = 'Connection timeout'
+      } else {
+        errorMessage = error.message
+      }
+    }
+
+    console.log('Бэкенд недоступен:', errorMessage)
     return {
       available: false,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: errorMessage,
     }
   }
 }
 
-// Утилита для автоматического переключения между mock и реальными данными
 export const withFallback = async <T>(
   realApiCall: () => Promise<T>,
   mockData: T | (() => T),
   useMock: boolean = false,
 ): Promise<T> => {
   if (useMock) {
-    console.log('Используются mock данные')
+    console.log('Используются mock данные (принудительно)');
     return typeof mockData === 'function' ? (mockData as () => T)() : mockData
   }
 
@@ -67,4 +91,24 @@ export const withFallback = async <T>(
     console.log('Используем mock данные как fallback')
     return typeof mockData === 'function' ? (mockData as () => T)() : mockData
   }
+}
+
+// Новая функция для проверки с повторными попытками
+export const checkBackendWithRetry = async (
+  maxRetries: number = 3,
+  delay: number = 1000,
+): Promise<boolean> => {
+  for (let i = 0; i < maxRetries; i++) {
+    const isAvailable = await isBackendAvailable()
+    if (isAvailable) {
+      return true
+    }
+
+    if (i < maxRetries - 1) {
+      console.log(`Попытка ${i + 1} не удалась, повтор через ${delay}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  return false
 }

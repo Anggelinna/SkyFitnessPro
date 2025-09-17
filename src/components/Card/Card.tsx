@@ -11,6 +11,7 @@ import { useNavigateFaraway } from "../../hooks/useNavigateFaraway"
 import { getActionTextFromProgress, getRate } from "../../utils/progress"
 import type { CourseType, KeysType } from "../../types/types"
 import { coursesAPI } from '../../api/coursesApi'
+import { useState } from "react"
 
 interface Props {
   courseData: CourseType
@@ -31,6 +32,9 @@ const imageMapping: { [key: string]: string } = {
 }
 
 export default function Card({ courseData, userId, onActionComplete }: Props) {
+  const [localIsAdded, setLocalIsAdded] = useState(courseData.isAdded);
+  const [localProgress, setLocalProgress] = useState(courseData.progress);
+  
   const name = courseData.name
   const link = `/courses/${courseData._id}`
   const navigate = useNavigateFaraway()
@@ -48,47 +52,78 @@ export default function Card({ courseData, userId, onActionComplete }: Props) {
     target.alt = 'Изображение не найдено'
   }
 
-  async function handleSubmit() {
-    if (courseData.progress >= courseData.max) {
+  const handleActionComplete = () => {
+    // Локально обновляем состояние
+    setLocalIsAdded(prev => !prev);
+    
+    // Вызываем колбэк родителя для обновления данных
+    if (onActionComplete) {
+      onActionComplete();
+    }
+  }
+
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (localProgress >= courseData.max) {
       try {
         await coursesAPI.repeatFromBeginUserCourse(userId, courseData._id)
+        setLocalProgress(0);
         if (onActionComplete) {
-          onActionComplete()
+          onActionComplete();
         }
       } catch (error) {
         console.error('Ошибка при сбросе прогресса:', error)
-      }
+ }
     }
     navigate(`choose/${courseData._id}`)
   }
-  //const isZumba = name === 'fitness'
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Предотвращаем переход по ссылке если кликнули на кнопку действия
+    if ((e.target as HTMLElement).closest('.card-action')) {
+      e.preventDefault();
+    }
+  }
+
+  const progressRate = getRate(localProgress, courseData.max);
 
   return (
-    <div className={twMerge(sharedStyles.card, sharedStyles.shadowedBlock, sharedStyles.scaledBlock)}>
+    <div 
+      className={twMerge(sharedStyles.card, sharedStyles.shadowedBlock, sharedStyles.scaledBlock)}
+      onClick={handleCardClick}
+    >
       <Link to={link}>
-  <div className={sharedStyles.cardPicture}>
-    <img
-      className={twMerge(
-        sharedStyles.cardInner,
-        sharedStyles[(`card-${name}`) as KeysType]
-      )}
-      src={imagePath}
-      alt={name}
-      onError={handleImageError}
-        />
-      </div>
-    </Link>
+        <div className={sharedStyles.cardPicture}>
+          <img
+            className={twMerge(
+              sharedStyles.cardInner,
+              sharedStyles[(`card-${name}`) as KeysType]
+            )}
+            src={imagePath}
+            alt={name}
+            onError={handleImageError}
+          />
+        </div>
+      </Link>
 
       <CardAction
         courseId={courseData._id}
         userId={userId}
-        action={courseData.isAdded ? "remove" : "add"}
-        onActionComplete={onActionComplete}
+        action={localIsAdded ? "remove" : "add"}
+        onActionComplete={handleActionComplete}
       />
 
       <div className={sharedStyles.cardBlock}>
         <div className={sharedStyles.cardContent}>
-          <Link className={sharedStyles.cardTitle} to={link}>{courseData.title}</Link>
+          <Link 
+            className={sharedStyles.cardTitle} 
+            to={link}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {courseData.title}
+          </Link>
 
           <div className={sharedStyles.cardTablets}>
             <Tablet imgName="calendar">25 дней</Tablet>
@@ -96,14 +131,19 @@ export default function Card({ courseData, userId, onActionComplete }: Props) {
             <Tablet imgName="difficulty" difficulty={courseData.difficulty} />
           </div>
 
-          {userId && courseData.isAdded && (
-            <Progress title="" progress={getRate(courseData.progress, courseData.max)} />
+          {userId && localIsAdded && (
+            <Progress title="" progress={progressRate} />
           )}
         </div>
 
-        {userId && courseData.isAdded && (
-          <Button additionalClasses={sharedStyles.buttonWideWithFields} primary={true} onClick={handleSubmit}>
-            {getActionTextFromProgress(false, courseData.progress, courseData.max)}
+        {userId && localIsAdded && (
+          <Button 
+            additionalClasses={sharedStyles.buttonWideWithFields} 
+            primary={true} 
+            onClick={handleSubmit}
+            type="button"
+          >
+            {getActionTextFromProgress(false, localProgress, courseData.max)}
           </Button>
         )}
       </div>

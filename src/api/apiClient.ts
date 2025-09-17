@@ -20,25 +20,6 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken')
-      window.location.href = '/signin'
-    }
-    return Promise.reject(error)
-  },
-)
-
-export const api = {
-  get: <T = unknown>(url: string, params?: Record<string, unknown>) => apiClient.get<T>(url, { params }),
-  post: <T = unknown>(url: string, data?: unknown) => apiClient.post<T>(url, data),
-  put: <T = unknown>(url: string, data?: unknown) => apiClient.put<T>(url, data),
-  patch: <T = unknown>(url: string, data?: unknown) => apiClient.patch<T>(url, data),
-  delete: <T = unknown>(url: string) => apiClient.delete<T>(url),
-}
-
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error) => {
     if (error.code === 'ERR_NETWORK') {
       console.error('Backend server is not running or unavailable')
       // Можно показать пользователю сообщение
@@ -53,3 +34,11 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+export const api = {
+  get: <T = unknown>(url: string, params?: Record<string, unknown>) => apiClient.get<T>(url, { params }),
+  post: <T = unknown>(url: string, data?: unknown) => apiClient.post<T>(url, data),
+  put: <T = unknown>(url: string, data?: unknown) => apiClient.put<T>(url, data),
+  patch: <T = unknown>(url: string, data?: unknown) => apiClient.patch<T>(url, data),
+  delete: <T = unknown>(url: string) => apiClient.delete<T>(url),
+}
