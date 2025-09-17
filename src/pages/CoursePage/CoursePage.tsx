@@ -20,20 +20,33 @@ function CoursePage() {
   if (!courseData)
     return "There is an error!"
 
-  function doExercises() {
-    if (courseData.progress >= 100)
-      coursesAPI.repeatFromBeginUserCourse(userContext.uid, courseData._id)
-
-    navigate(`choose/${courseData._id}`)
+  async function doExercises() {
+    try {
+      if (courseData.progress >= 100) {
+        await coursesAPI.repeatFromBeginUserCourse(userContext.uid, courseData._id)
+      } else {
+        await coursesAPI.removeUserCourse(userContext.uid, courseData._id)
+      }
+      // navigate(`choose/${courseData._id}`)
+    } catch (error) {
+      console.error('Ошибка при выполнении действия с курсом:', error)
+    }
   }
 
   async function handleSubmit() {
-    if (!userContext.isAuthenticated())
+    if (!userContext.isAuthenticated()) {
       navigate(pages.SIGN_IN)
-    else if (!courseData.isAdded)
-      await coursesAPI.addUserCourse(userContext.uid, courseData._id)
-    else
-      doExercises()
+    } else if (!courseData.isAdded) {
+      try {
+        await coursesAPI.addUserCourse(userContext.uid, courseData._id)
+        // Обновляем состояние после успешного добавления
+        courseData.isAdded = true
+      } catch (error) {
+        console.error('Ошибка при добавлении курса:', error)
+      }
+    } else {
+      await doExercises()
+    }
   }
 
   function getButtonText() {
@@ -46,7 +59,7 @@ function CoursePage() {
     else if (courseData.progress > 0)
       return "Продолжить курс"
     else
-      return "Начать курс"
+      return "Удалить курс"
   }
 
   return (
@@ -111,7 +124,7 @@ function CoursePage() {
           <img className={sharedStyles.presentationNewLifeMan} src="/img/runner.png" alt="runner" />
         </section>
 
-        <img className={twMerge("presentationNewLifeMan max-w-[482px] max-h-[456px] absolute m-auto right-[9px] main:hidden top-[-265px]", sharedStyles.headerProfileBlockSmall)} src="/img/runner_small.svg" alt="runner" />
+        <img className={twMerge(sharedStyles.presentationNewLifeManSmall, sharedStyles.headerProfileBlockSmall)} src="/img/runner_small.svg" alt="runner" />
       </div>
 
       <Footer />

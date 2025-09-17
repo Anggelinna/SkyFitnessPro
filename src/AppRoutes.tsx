@@ -14,98 +14,85 @@ import pages from "./data/pages"
 
 import { coursesAPI } from "./api/coursesApi"
 
-
 const signingRouterData = [
   {
-    path:    pages.SIGN_IN,
+    path: pages.SIGN_IN,
     element: <SigningModal mode="signIn" />,
-    async loader() {
-      console.log("SigningModal: in")
-      return true
-    },
   },
   {
-    path:    pages.SIGN_UP,
+    path: pages.SIGN_UP,
     element: <SigningModal mode="signUp" />,
-    async loader() {
-      console.log("SigningModal: up")
-      return true
-    },
   },
   {
-    path:    pages.SIGN_OUT,
+    path: pages.SIGN_OUT,
     element: <SigningModal mode="signOut" />,
   },
   {
-    path:    pages.SIGNING,
+    path: pages.SIGNING,
     element: <SigningModal mode="signIn" />,
-    async loader() {
-      console.log("SigningModal: root")
-      return true
-    },
   },
 ]
 
 const choosingTrainRouterData = (userContext: UserContextValue): NonIndexRouteObject => ({
-  path:    pages.CHOOSE,
+  path: pages.CHOOSE,
   element: <ExercisesListPage />,
   async loader({ params }) {
-    if (params.id)
+    if (params.id) {
       return coursesAPI.getWorkoutsIntoCourse(params.id, userContext.uid)
-    else
-      return []
+    }
+    return []
   },
 })
 
 const router = (userContext: UserContextValue) => createBrowserRouter([
   {
-    path:     pages.MAIN,
-    element:  <MainPage />,
-    loader:   async () => await coursesAPI.getCourses(userContext.uid),
+    path: pages.MAIN,
+    element: <MainPage />,
+    loader: async () => coursesAPI.getCourses(userContext.uid),
     children: [...signingRouterData, choosingTrainRouterData(userContext)],
   },
   {
-    path:     pages.COURSES,
-    element:  <MainPage />,
-    loader:   async () => await coursesAPI.getCourses(userContext.uid),
+    path: pages.COURSES,
+    element: <MainPage />,
+    loader: async () => coursesAPI.getCourses(userContext.uid),
     children: [...signingRouterData, choosingTrainRouterData(userContext)],
   },
   {
-    path:    pages.COURSE,
+    path: pages.COURSE,
     element: <CoursePage />,
     async loader({ params }) {
-      if (params.id)
+      if (params.id) {
         return coursesAPI.getCourse(params.id, userContext.uid)
-      else
-        return null
+      }
+      return null
     },
     children: [...signingRouterData, choosingTrainRouterData(userContext)],
   },
   {
-    element:  <PrivateRoute />,
+    element: <PrivateRoute />,
     children: [
       {
-        path:    pages.WORKOUT,
+        path: pages.WORKOUT,
         element: <ExercisePage />,
         async loader({ params }) {
-          if (params.courseId && params.workoutId)
+          if (params.courseId && params.workoutId) {
             return coursesAPI.getWorkout(params.courseId, params.workoutId, userContext.uid)
-          else
-            return []
+          }
+          return null
         },
         children: [{
-          path:    pages.WRITE,
+          path: pages.WRITE,
           element: <WriteProgressPage />,
           async loader({ params }) {
-            if (params.courseId && params.workoutId)
+            if (params.courseId && params.workoutId) {
               return coursesAPI.getWorkout(params.courseId, params.workoutId, userContext.uid)
-            else
-              return []
+            }
+            return null
           },
         }],
       },
       {
-        path:    pages.PROFILE,
+        path: pages.PROFILE,
         element: <ProfilePage />,
         async loader() {
           return coursesAPI.getCourses(userContext.uid)
@@ -115,7 +102,7 @@ const router = (userContext: UserContextValue) => createBrowserRouter([
     ],
   },
   {
-    path:    pages.NOT_FOUND,
+    path: pages.NOT_FOUND,
     element: <Page404 />,
   },
 ])
@@ -123,7 +110,5 @@ const router = (userContext: UserContextValue) => createBrowserRouter([
 export default function AppRoutes() {
   const userContext = useUserContext()
 
-  return (
-    <RouterProvider router={router(userContext)} />
-  )
+  return <RouterProvider router={router(userContext)} />
 }

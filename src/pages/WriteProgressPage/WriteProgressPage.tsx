@@ -4,10 +4,8 @@ import Button from "../../components/Button/Button"
 import React, { useEffect, useState } from "react"
 import { useLoaderData, useNavigate, useParams } from "react-router-dom"
 import { useUserContext } from "../../context/UserContext/UserContext"
-import { ExercisesType, WorkoutType } from "../../types/types"
-import pages from "../../data/pages"
+import { CourseType, ExercisesType, WorkoutType } from "../../types/types"
 import { coursesAPI } from "../../api/coursesApi"
-
 
 export default function WriteProgressPage() {
   const { courseId, workoutId } = useParams()
@@ -21,7 +19,7 @@ export default function WriteProgressPage() {
       setExercises(workoutData.exercises)
   }, [workoutData])
 
-  if (!workoutData)
+  if (!workoutData || !courseId || !workoutId)
     return "There is an error!"
 
   function handleClose(e: React.MouseEvent<HTMLDivElement>) {
@@ -29,15 +27,25 @@ export default function WriteProgressPage() {
       navigate(-1)
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    coursesAPI.writeProgressWithExercisesToUserCourse(userContext.uid, courseId, workoutId, exercises.map((exercise, index) => ({
-      index:    index,
-      progress: exercise.progress || 0,
-    })))
+    try {
+      await coursesAPI.writeProgressWithExercisesToUserCourse(
+        userContext.uid,
+        courseId,
+        workoutId,
+        exercises.map((exercise, index) => ({
+          index: index,
+          progress: exercise.progress || 0,
+        })),
+      )
 
-    navigate(pages.PROFILE)
+      navigate(`/workout/${courseId}/${workoutId}/`, { replace: true })
+    } catch (error) {
+      console.error('Ошибка при сохранении прогресса:', error)
+      // Можно добавить уведомление пользователю об ошибке
+    }
   }
 
   return (
@@ -61,7 +69,14 @@ export default function WriteProgressPage() {
                 return (
                   <div key={index} className={sharedStyles.writeProgressItem}>
                     <p className={sharedStyles.text_18_20}>{exercise.name}</p>
-                    <input className={sharedStyles.writeProgressInput} type="number" min={0} max={exercise.quantity} value={exercise.progress || 0} onChange={changeValue} />
+                    <input
+                      className={sharedStyles.writeProgressInput}
+                      type="number"
+                      min={0}
+                      max={exercise.quantity}
+                      value={exercise.progress || 0}
+                      onChange={changeValue}
+                    />
                   </div>
                 )
               })

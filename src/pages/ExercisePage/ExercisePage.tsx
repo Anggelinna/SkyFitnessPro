@@ -12,7 +12,6 @@ import { getRate } from "../../utils/progress"
 import { coursesAPI } from "../../api/coursesApi"
 import Footer from "../../components/Footer/Footer"
 
-
 export default function ExercisePage() {
   const { courseId, workoutId } = useParams()
   const workoutData = useLoaderData() as WorkoutType
@@ -20,16 +19,20 @@ export default function ExercisePage() {
   const navigate = useNavigate()
   const navigateFaraway = useNavigateFaraway()
 
-  if (!workoutData)
+  if (!workoutData || !courseId || !workoutId)
     return "There is an error!"
 
   async function handleSubmit() {
-    if (workoutData.exercises)
+    if (workoutData.exercises) {
       return navigateFaraway(pages.WRITE)
+    }
 
-    coursesAPI.writeProgressToUserCourse(userContext.uid, courseId, workoutId, 1)
-
-    navigate(pages.PROFILE)
+    try {
+      await coursesAPI.writeProgressToUserCourse(userContext.uid, courseId, workoutId, 1)
+      navigate(pages.PROFILE)
+    } catch (error) {
+      console.error('Ошибка при сохранении прогресса:', error)
+    }
   }
 
   return (
@@ -50,9 +53,15 @@ export default function ExercisePage() {
             </div>
 
             <div className={sharedStyles.videoBlock}>
-              <iframe className="" width="100%" height="100%" src={workoutData.video} title="YouTube player"
+              <iframe
+                width="100%"
+                height="100%"
+                src={workoutData.video}
+                title="YouTube player"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
             </div>
           </section>
 
@@ -60,29 +69,31 @@ export default function ExercisePage() {
             <p className={sharedStyles.workoutDayCaption}>Упражнения тренировки {workoutData.day}</p>
 
             <div className={sharedStyles.workoutProgresses}>
-              {
-                workoutData.exercises
-                  ? (
-                    <>
-                      {
-                        workoutData.exercises.map((exercise, index) => {
-                          if (!exercise)
-                            return null
+              {workoutData.exercises ? (
+                workoutData.exercises.map((exercise, index) => {
+                  if (!exercise) return null
 
-                          return (
-                            <Progress key={index} title={`${index + 1}) ${exercise.name}`} progress={getRate(exercise.progress, exercise.quantity)} />
-                          )
-                        })
-                      }
-                    </>
+                  return (
+                    <Progress
+                      key={index}
+                      title={`${index + 1}) ${exercise.name}`}
+                      progress={getRate(exercise.progress || 0, exercise.quantity)}
+                    />
                   )
-                  : (
-                    <Progress title={""} progress={getRate(workoutData.progress, workoutData.max)} />
-                  )
-              }
+                })
+              ) : (
+                <Progress
+                  title="Общий прогресс тренировки"
+                  progress={getRate(workoutData.progress || 0, workoutData.max || 1)}
+                />
+              )}
             </div>
 
-            <Button additionalClasses={sharedStyles.buttonProgress} primary={true} onClick={handleSubmit}>
+            <Button
+              additionalClasses={sharedStyles.buttonProgress}
+              primary={true}
+              onClick={handleSubmit}
+            >
               {workoutData.exercises ? "Заполнить свой прогресс" : "Завершить занятие"}
             </Button>
           </section>

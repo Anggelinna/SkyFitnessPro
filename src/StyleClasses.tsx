@@ -1,4 +1,4 @@
-// @ts-nocheck
+/// @ts-nocheck
 // there is special file to get sharedStyles.ts
 // you can use `npm run prebuild` + `npm run dev`
 
@@ -80,14 +80,14 @@ function StyleClasses() {
       <presentationGoals className="flex flex-wrap gap-x-31 gap-y-6 rounded-[28px] bg-good p-[30px] text-lg/5 main:gap-y-[34px] main:text-2xl/[26px]" />
       <presentationGoal className="flex h-13/2 w-[284px] items-center gap-2" />
       <presentationGoalStar className="h-13/2 w-[26px]" />
-      <presentationNewLifeSection className="relative mx-auto mt-[116px] w-[482px] main:mt-[42px] main:w-[1160px]" />
+      <presentationNewLifeSection className="relative mx-auto mt-[116px] w-[343px] main:mx-center main:mt-[42px] main:w-[1160px]" />
       <presentationNewLife className="presentationNewLife relative z-10 m-auto w-[343px] rounded-[30px] bg-white p-[30px] main:z-0 main:mt-0 main:w-[1160px] main:p-10" />
       <presentationNewLifeTitle className="mb-9 text-[32px]/9 font-medium main:mb-10 main:text-6xl" />
       <presentationNewLifeLeft className="relative z-10 list-inside main:w-[448px]" />
       <presentationNewLifeLeftItem className="list-disc text-lg opacity-60 main:text-2xl" />
       <presentationNewLifeRight className="absolute bottom-0 right-0 hidden h-full w-full overflow-hidden main:block" />
       <presentationNewLifeLines className="absolute bottom-[-58px] right-[30px] h-[530px] w-[635px]" />
-      <presentationNewLifeMan className="absolute bottom-[9px] right-[9px] hidden h-[570px] w-[550px] main:block" />
+      <presentationNewLifeMan className="absolute bottom-[9px] hidden h-[570px] w-[550px] main:block main:right-[9px]" />
       <presentationNewLifeManSmall className="presentationNewLifeMan absolute right-[9px] top-[-265px] m-auto max-h-[456px] max-w-[482px] main:hidden" />
       {/* user menu */}
       <userMenu className="absolute right-0 top-[74px] z-20 flex flex-col justify-center gap-[34px] rounded-[30px] bg-white p-[30px]" />

@@ -61,15 +61,20 @@ export const sharedStyles = {
 
   /* card */
 
-  cards: "cards flex w-full flex-wrap justify-start gap-6 main:gap-10",
-  card: "card relative w-[343px] rounded-[30px] bg-white hover:z-40 main:w-[360px]",
+  // В sharedStyles.ts обновите:
+  cards: "cards flex w-full flex-wrap justify-start gap-6 main:gap-10 max-sm:justify-center",
+  card: "card relative w-[343px] rounded-[30px] bg-white hover:z-40 main:w-[360px] max-sm:mx-auto",
   cardPicture: "cardPicture relative h-[325px] w-[343px] overflow-hidden rounded-[30px] main:w-[360px]",
   cardInner: "cardInner absolute",
-  "card-yoga": "card-yoga right-[-232px] top-[-119px] min-h-[557px] min-w-[834px]",
-  "card-stretching": "card-stretching right-0 top-0 min-h-[540px] min-w-[360px]",
-  "card-zumba": "card-zumba -top-8 right-[-398px] min-h-[767px] min-w-[1150px]",
-  "card-aerobics": "card-aerobics right-[-82px] top-[-715px] min-h-[1081px] min-w-[721px]",
-  "card-body-flex": "card-body-flex right-[-182px] top-[-168px] min-h-[514px] min-w-[771px]",
+
+  "card-yoga": "card-yoga right-[-232px] top-[-119px] min-h-[557px] min-w-[834px] object-cover object-center scale-110",
+  "card-stretching": "card-stretching right-0 top-0 min-h-[540px] min-w-[360px] object-cover object-center scale-110", 
+  "card-zumba": "card-zumba -top-8 right-[-398px] min-h-[767px] min-w-[1150px] object-cover object-center scale-125", // Больше zoom для zumba
+  "card-aerobics": "card-aerobics right-[-82px] top-[-715px] min-h-[1081px] min-w-[721px] object-cover object-center scale-110",
+  "card-body-flex": "card-body-flex right-[-182px] top-[-168px] min-h-[514px] min-w-[771px] object-cover object-center scale-110",
+  // Добавьте для fitness и step-aerobics если нужно
+  "card-fitness": "card-zumba -top-8 right-[-398px] min-h-[767px] min-w-[1150px] object-cover object-center scale-125",
+  "card-step-aerobics": "card-aerobics right-[-82px] top-[-715px] min-h-[1081px] min-w-[721px] object-cover object-center scale-110",
   cardAction: "cardAction group/card absolute h-8 w-8",
   cardAddBtn: "cardAddBtn absolute left-[291px] top-[-305px] h-8 w-8 cursor-arrow duration-300 hover:scale-110 main:left-[308px]",
   cardActionTooltip: "cardActionTooltip absolute left-[352px] top-[-262px] hidden h-[27px] w-max items-center justify-center rounded-[5px] border border-black bg-white p-1.5 text-sm main:group-hover/card:flex",

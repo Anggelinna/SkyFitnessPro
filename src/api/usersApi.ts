@@ -1,23 +1,80 @@
-import { signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth"
-import { createUserWithEmailAndPassword } from "firebase/auth/cordova"
-import { auth } from "./firebaseConfig"
-
-
 export const usersApi = {
-  async create(email: string, password: string, name: string) {
-    const signUp = await createUserWithEmailAndPassword(auth, email, password)
-    const user   = signUp.user
+  async create(email: string, password: string, name: string): Promise<User> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+      })
 
-    await updateProfile(user, { displayName: name })
-    await signOut(auth)
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Ошибка регистрации')
+      }
 
-    return user
+      const data: AuthResponse = await response.json()
+      return data.user
+    } catch (error) {
+      console.error('Ошибка регистрации:', error)
+      throw error
+    }
   },
 
-  async auth(email: string, password: string) {
-    const signIn = await signInWithEmailAndPassword(auth, email, password)
-    const user   = signIn.user
+  async auth(email: string, password: string): Promise<User> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-    return user
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Ошибка авторизации')
+      }
+
+      const data: AuthResponse = await response.json()
+
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+      }
+
+      return data.user
+    } catch (error) {
+      console.error('Ошибка авторизации:', error)
+      throw error
+    }
+  },
+
+  async logout(): Promise<void> {
+    localStorage.removeItem('authToken')
+  },
+
+  async getCurrentUser(): Promise<User | null> {
+    const token = localStorage.getItem('authToken')
+    if (!token) return null
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Не удалось получить данные пользователя')
+      }
+
+      const data = await response.json()
+      return data.user
+    } catch (error) {
+      console.error('Ошибка получения пользователя:', error)
+      return null
+    }
   },
 }

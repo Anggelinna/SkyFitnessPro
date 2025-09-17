@@ -1,31 +1,41 @@
 import { sharedStyles } from "../../sharedStyles"
-
 import React from "react"
-
 import { coursesAPI } from "../../api/coursesApi"
-
 
 interface Props {
   courseId: string
-  userId:   string
-  action:   "add" | "remove"
+  userId: string
+  action: "add" | "remove"
+  onActionComplete?: () => void // Колбэк для обновления состояния после действия
 }
 
-function CardAction({ courseId, userId, action }: Props) {
+function CardAction({ courseId, userId, action, onActionComplete }: Props) {
   const picture = action === "add" ? "plus" : "minus"
 
-  function handleAction() {
-    if (action === "add")
-      coursesAPI.addUserCourse(userId, courseId)
-    else
-      coursesAPI.removeUserCourse(userId, courseId)
+  async function handleAction() {
+    try {
+      if (action === "add") {
+        await coursesAPI.addUserCourse(userId, courseId)
+      } else {
+        await coursesAPI.removeUserCourse(userId, courseId)
+      }
 
-    window.location.reload()
+      // Вызываем колбэк для обновления UI вместо перезагрузки страницы
+      if (onActionComplete) {
+        onActionComplete()
+      }
+    } catch (error) {
+      console.error('Ошибка при выполнении действия с курсом:', error)
+    }
   }
 
   return (
     <div className={sharedStyles.cardAction} onClick={handleAction}>
-      <img className={sharedStyles.cardAddBtn} src={`/img/${picture}.svg`} alt={action} />
+      <img
+        className={sharedStyles.cardAddBtn}
+        src={`/img/${picture}.svg`}
+        alt={action}
+      />
 
       <div className={sharedStyles.cardActionTooltip}>
         {action === "add" ? "Добавить" : "Удалить"} курс

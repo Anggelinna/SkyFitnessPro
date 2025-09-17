@@ -1,5 +1,0 @@
-export { apiClient, api } from './apiClient'
-export { authApi } from './authApi'
-export { coursesApi } from './coursesApi'
-export * from './authUtils'
-export * from './config'

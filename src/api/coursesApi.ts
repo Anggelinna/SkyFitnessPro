@@ -1,246 +1,390 @@
-import { get, ref, set } from "firebase/database"
-import { db } from "./firebaseConfig"
+import { API_BASE_URL } from "./config"
+import { withFallback } from "../utils/network"
+import type {
+  CoursesType,
+  CourseType,
+  WorkoutsType,
+  WorkoutType,
+  ExerciseType,
+  UserExercisesDataType,
+  UserDataType,
+  UserWorkoutDataType,
+  ProgressData,
+  WorkoutProgress,
+} from "../types/types"
 
-import type { CoursesType, CourseType, WorkoutsType, WorkoutType } from "../types/types"
-import type { UserExercisesDataType, UserDataType, UserWorkoutDataType } from "../types/types"
-import { fillUserFieldsInCourse, getProgressInsideUserData } from "../utils/progress"
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken')
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+  }
+}
+
+// Mock данные для fallback
+const mockCourses: CoursesType = [
+  {
+    _id: '1',
+    name: 'yoga',
+    title: 'Йога для начинающих',
+    difficulty: 'easy',
+    progress: 0,
+    max: 10,
+    isAdded: false,
+    workouts: ['w1', 'w2'],
+    fitting: ['Подходит для расслабления', 'Улучшает гибкость'],
+    directions: ['Гибкость', 'Релаксация'],
+  },
+  {
+    _id: '2',
+    name: 'stretching',
+    title: 'Стретчинг',
+    difficulty: 'medium',
+    progress: 0,
+    max: 10,
+    isAdded: false,
+    workouts: ['w3', 'w4'],
+    fitting: ['Улучшает растяжку', 'Снимает напряжение'],
+    directions: ['Гибкость', 'Растяжка'],
+  },
+  {
+    _id: '3',
+    name: 'fitness', // изменено с strength на fitness
+    title: 'Фитнес',
+    difficulty: 'hard',
+    progress: 0,
+    max: 10,
+    isAdded: false,
+    workouts: ['w5', 'w6'],
+    fitting: ['Укрепляет мышцы', 'Повышает выносливость'],
+    directions: ['Сила', 'Выносливость'],
+  },
+  {
+    _id: '4',
+    name: 'step-aerobics', // новый курс
+    title: 'Степ-аэробика',
+    difficulty: 'medium',
+    progress: 0,
+    max: 10,
+    isAdded: false,
+    workouts: ['w7', 'w8'],
+    fitting: ['Улучшает координацию', 'Сжигает калории'],
+    directions: ['Кардио', 'Координация'],
+  },
+  {
+    _id: '5',
+    name: 'body-flex', // новый курс
+    title: 'Бодифлекс',
+    difficulty: 'easy',
+    progress: 0,
+    max: 10,
+    isAdded: false,
+    workouts: ['w9', 'w10'],
+    fitting: ['Улучшает дыхание', 'Тонизирует мышцы'],
+    directions: ['Дыхание', 'Тонус'],
+  },
+]
+
+const mockWorkouts: WorkoutsType = [
+  {
+    _id: 'w1',
+    name: 'Утренняя йога',
+    courseId: '1',
+    courseName: 'Йога для начинающих',
+    day: 1,
+    progress: 0,
+    max: 5,
+    video: 'https://www.youtube.com/embed/example1',
+    exercises: [
+      { name: 'Поза горы', quantity: 10, progress: 0 },
+      { name: 'Поза дерева', quantity: 8, progress: 0 },
+    ],
+  },
+  {
+    _id: 'w2',
+    name: 'Вечерняя йога',
+    courseId: '1',
+    courseName: 'Йога для начинающих',
+    day: 2,
+    progress: 0,
+    max: 5,
+    video: 'https://www.youtube.com/embed/example2',
+    exercises: [
+      { name: 'Поза ребенка', quantity: 5, progress: 0 },
+      { name: 'Поза кобры', quantity: 7, progress: 0 },
+    ],
+  },
+]
 
 export const coursesAPI = {
   // reading methods
 
   async getCourses(userId: string): Promise<CoursesType> {
-    try {
-      const path = "courses"
-      const snapshot = await get(ref(db, path))
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/courses?userId=${userId}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
 
-      if (!snapshot.exists())
-        return []
-
-      const data: CoursesType = Object.values(snapshot.val())
-      data.sort((lhs, rhs) => lhs.order - rhs.order)
-
-      if (userId) {
-        const workoutsData = await coursesAPI.getWorkouts()
-
-        const userPath = `/users/${userId}/courses`
-        const userSnapshot = await get(ref(db, userPath))
-
-        if (userSnapshot.exists()) {
-          const userData: UserDataType = userSnapshot.val()
-
-          data.forEach((course) => {
-            fillUserFieldsInCourse(course, workoutsData, userData)
-          })
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text()
+          console.error('Сервер вернул не JSON:', text.substring(0, 200))
+          throw new Error('Сервер вернул неверный формат данных')
         }
-      }
 
-      return data
-    } catch (error) {
-      console.log(error)
-      return []
-    }
+        if (!response.ok) {
+          throw new Error('Ошибка получения курсов')
+        }
+
+        const data = await response.json()
+        return data.courses || []
+      },
+      mockCourses,
+    )
   },
 
   async getCourse(courseId: string, userId: string): Promise<CourseType | null> {
-    try {
-      const path = `courses/${courseId}`
-      const snapshot = await get(ref(db, path))
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}?userId=${userId}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
 
-      if (!snapshot.exists())
-        return null
-
-      const data = snapshot.val() as CourseType
-
-      if (userId) {
-        const workoutsData = await coursesAPI.getWorkouts()
-
-        const userPath = `/users/${userId}/courses`
-        const userSnapshot = await get(ref(db, userPath))
-
-        if (userSnapshot.exists()) {
-          const userData: UserDataType = userSnapshot.val()
-
-          fillUserFieldsInCourse(data, workoutsData, userData)
+        if (!response.ok) {
+          throw new Error('Ошибка получения курса')
         }
-      }
 
-      return data
-    } catch (error) {
-      console.log(error)
-      return null
-    }
+        const data = await response.json()
+        return data.course || null
+      },
+      mockCourses.find(course => course._id === courseId) || null,
+    )
   },
 
   async getWorkouts(): Promise<WorkoutsType> {
-    try {
-      const path = "workouts"
-      const snapshot = await get(ref(db, path))
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/workouts`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
 
-      if (!snapshot.exists())
-        return []
+        if (!response.ok) {
+          throw new Error('Ошибка получения тренировок')
+        }
 
-      return Object.values(snapshot.val())
-    } catch (error) {
-      console.log(error)
-      return []
-    }
+        const data = await response.json()
+        return data.workouts || []
+      },
+      mockWorkouts,
+    )
   },
 
   async getWorkoutsIntoCourse(courseId: string, userId: string): Promise<WorkoutsType> {
-    try {
-      const path = `courses/${courseId}`
-      const snapshot = await get(ref(db, path))
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/workouts?userId=${userId}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
 
-      if (!snapshot.exists())
-        return []
-
-      const workoutsData = await coursesAPI.getWorkouts()
-      const courseData = snapshot.val() as CourseType
-
-      // Исправлено: правильное создание WorkoutsType
-      const data: WorkoutsType = courseData.workouts.map((workoutId) => {
-        const workout = workoutsData.find(w => w._id === workoutId)
-        if (!workout) {
-          // Возвращаем минимальный объект WorkoutType если не найден
-          return {
-            _id: workoutId,
-            name: 'Unknown Workout',
-            video: '',
-            courseName: courseData.title,
-            day: courseData.workouts.indexOf(workoutId) + 1,
-            max: 0,
-            progress: 0,
-          }
+        if (!response.ok) {
+          throw new Error('Ошибка получения тренировок курса')
         }
-        return workout
-      })
 
-      if (userId) {
-        const userPath = `/users/${userId}/courses`
-        const userSnapshot = await get(ref(db, userPath))
-
-        if (userSnapshot.exists()) {
-          const userData: UserDataType = userSnapshot.val()
-
-          for (const workoutData of data) {
-            let progress = 0
-            let max = 0
-
-            const foundWorkout = workoutsData.find(w => w._id === workoutData._id)
-            if (foundWorkout) {
-              if (foundWorkout.exercises) {
-                for (const exercise of foundWorkout.exercises)
-                  max += exercise.quantity
-              } else {
-                max += 1
-              }
-
-              progress += getProgressInsideUserData(userData, courseId, workoutData._id)
-            }
-
-            workoutData.progress = progress
-            workoutData.max = Math.max(max, 1)
-            workoutData.courseName = courseData.title
-            workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
-          }
-        }
-      }
-
-      return data
-    } catch (error) {
-      console.log(error)
-      return []
-    }
+        const data = await response.json()
+        return data.workouts || []
+      },
+      mockWorkouts.filter(workout => workout.courseId === courseId),
+    )
   },
 
   async getWorkout(courseId: string, workoutId: string, userId: string): Promise<WorkoutType | null> {
-    try {
-      const path = `workouts/${workoutId}`
-      const snapshot = await get(ref(db, path))
+    return withFallback(
+      async () => {
+        const response = await fetch(
+          `${API_BASE_URL}/api/courses/${courseId}/workouts/${workoutId}?userId=${userId}`,
+          {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          },
+        )
 
-      if (!snapshot.exists())
-        return null
-
-      const workoutData = snapshot.val() as WorkoutType
-      const courseData = await coursesAPI.getCourse(courseId, "")
-
-      if (!courseData)
-        return workoutData
-
-      workoutData.courseName = courseData.title
-      workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
-
-      if (userId) {
-        const userPath = `/users/${userId}/courses/${courseId}/workouts/${workoutId}`
-        const userSnapshot = await get(ref(db, userPath))
-
-        if (userSnapshot.exists()) {
-          const userData: UserWorkoutDataType = userSnapshot.val()
-
-          let progress = 0
-          let max = 0
-
-          if (workoutData.exercises) {
-            if (userData.exercises) {
-              for (const exercise of userData.exercises) {
-                if (workoutData.exercises[exercise.index]) {
-                  workoutData.exercises[exercise.index].progress = exercise.progress || 0
-                }
-              }
-            }
-
-            for (const exercise of workoutData.exercises) {
-              max += exercise.quantity
-              progress += exercise.progress || 0
-            }
-          } else {
-            max = 1
-            progress = userData.progress || 0
-          }
-
-          workoutData.progress = progress
-          workoutData.max = Math.max(max, 1)
-          workoutData.courseName = courseData.title
-          workoutData.day = courseData.workouts.indexOf(workoutData._id) + 1
+        if (!response.ok) {
+          throw new Error('Ошибка получения тренировки')
         }
-      }
 
-      return workoutData
-    } catch (error) {
-      console.log(error)
-      return null
-    }
+        const data = await response.json()
+        return data.workout || null
+      },
+      mockWorkouts.find(workout => workout._id === workoutId && workout.courseId === courseId) || null,
+    )
   },
 
   // writing methods
 
-  async addUserCourse(userId: string, courseId: string) {
-    const path = `users/${userId}/courses/${courseId}`
+  async addUserCourse(userId: string, courseId: string): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/courses`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId, courseId }),
+        })
 
-    await set(ref(db, path), { _id: courseId })
+        if (!response.ok) {
+          throw new Error('Ошибка добавления курса')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
   },
 
-  async removeUserCourse(userId: string, courseId: string) {
-    const path = `users/${userId}/courses/${courseId}`
+  async removeUserCourse(userId: string, courseId: string): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/courses/${courseId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId }),
+        })
 
-    await set(ref(db, path), null)
+        if (!response.ok) {
+          throw new Error('Ошибка удаления курса')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
   },
 
-  async repeatFromBeginUserCourse(userId: string, courseId: string) {
-    const path = `users/${userId}/courses/${courseId}`
+  async repeatFromBeginUserCourse(userId: string, courseId: string): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/courses/${courseId}/reset`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId }),
+        })
 
-    await set(ref(db, path), { _id: courseId })
+        if (!response.ok) {
+          throw new Error('Ошибка сброса прогресса курса')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
   },
 
-  async writeProgressToUserCourse(userId: string, courseId: string, workoutId: string, progress: number) {
-    const path = `users/${userId}/courses/${courseId}/workouts/${workoutId}`
+  async writeProgressToUserCourse(
+    userId: string,
+    courseId: string,
+    workoutId: string,
+    progress: number,
+  ): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/progress`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId, courseId, workoutId, progress }),
+        })
 
-    await set(ref(db, path), { _id: workoutId, progress })
+        if (!response.ok) {
+          throw new Error('Ошибка сохранения прогресса')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
   },
 
-  async writeProgressWithExercisesToUserCourse(userId: string, courseId: string, workoutId: string, exercisesData: UserExercisesDataType) {
-    const path = `users/${userId}/courses/${courseId}/workouts/${workoutId}/exercises`
+  async writeProgressWithExercisesToUserCourse(
+    userId: string,
+    courseId: string,
+    workoutId: string,
+    exercisesData: UserExercisesDataType,
+  ): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/progress/exercises`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId, courseId, workoutId, exercisesData }),
+        })
 
-    await set(ref(db, path), exercisesData)
+        if (!response.ok) {
+          throw new Error('Ошибка сохранения прогресса упражнений')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
+  },
+
+  // Дополнительные методы
+  async getUserCourses(userId: string): Promise<CoursesType> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/courses?userId=${userId}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+          throw new Error('Ошибка получения курсов пользователя')
+        }
+
+        const data = await response.json()
+        return data.courses || []
+      },
+      mockCourses,
+    )
+  },
+
+  async getUserProgress(userId: string, courseId: string): Promise<ProgressData | null> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/progress?userId=${userId}&courseId=${courseId}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+          throw new Error('Ошибка получения прогресса')
+        }
+
+        return await response.json()
+      },
+      { progress: 0, max: 10 },
+    )
+  },
+
+  async updateUserSelectedCourses(userId: string, selectedCourses: string[]): Promise<{ message: string }> {
+    return withFallback(
+      async () => {
+        const response = await fetch(`${API_BASE_URL}/api/user/selected-courses`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ userId, selectedCourses }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Ошибка обновления выбранных курсов')
+        }
+
+        return await response.json()
+      },
+      { message: 'success' },
+    )
   },
 }

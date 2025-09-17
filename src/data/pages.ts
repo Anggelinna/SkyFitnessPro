@@ -1,4 +1,3 @@
-
 const pages = {
   MAIN:      "/",
   COURSES:   "/courses/",

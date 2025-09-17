@@ -2,14 +2,14 @@ import { createContext, ReactNode, useContext, useState } from "react"
 
 /* interfaces */
 interface UserType {
-  uid: string
+  uid:   string
   email: string | null
   token: string
 }
 
 export interface UserContextValue extends UserType {
   isAuthenticated: () => boolean
-  save: (token: string, email: string) => void
+  save: (token: string, uid: string, email: string) => void
   clear: () => void
 }
 
@@ -24,12 +24,13 @@ const UserContext = createContext<UserContextValue | undefined>(undefined)
 function read(): UserType | null {
   try {
     const token = localStorage.getItem('authToken')
+    const uid   = localStorage.getItem('userId')
     const email = localStorage.getItem('userEmail')
 
     if (!token || !email) return null
 
     return {
-      uid: email,
+      uid:   uid,
       email: email,
       token: token,
     }
@@ -47,12 +48,13 @@ export function UserProvider({ children }: Props) {
     return Boolean(data && data.token)
   }
 
-  function save(token: string, email: string): void {
+  function save(token: string, uid: string, email: string): void {
     localStorage.setItem('authToken', token)
+    localStorage.setItem('userId',    uid)
     localStorage.setItem('userEmail', email)
 
     const userData: UserType = {
-      uid: email,
+      uid:   uid,
       email: email,
       token: token,
     }
@@ -62,6 +64,7 @@ export function UserProvider({ children }: Props) {
 
   function clear(): void {
     localStorage.removeItem('authToken')
+    localStorage.removeItem('userId')
     localStorage.removeItem('userEmail')
     setData(null)
   }
