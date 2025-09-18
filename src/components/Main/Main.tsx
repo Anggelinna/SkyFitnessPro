@@ -22,6 +22,14 @@ const Main: React.FC = () => {
     });
   };
 
+  const mainPageOrder = ['Йога', 'Стретчинг', 'Фитнес', 'Степ-аэробика', 'Бодифлекс',];
+  
+  const sortedCourses = [...courses].sort((a, b) => {
+    const indexA = mainPageOrder.indexOf(a.nameRU);
+    const indexB = mainPageOrder.indexOf(b.nameRU);
+    return indexA - indexB;
+  });
+
   return loadingCourses ? (
     <Spinner />
   ) : (
@@ -30,12 +38,17 @@ const Main: React.FC = () => {
         <S.Title>Начните заниматься спортом и улучшите качество жизни</S.Title>
         <S.TitleImg src="./titleLogo.svg" alt="Логотип к названию сайта" />
       </S.TitleBlock>
-      <CoursesList courses={courses} isUserCourse={false} />
+      <CoursesList 
+       courses={sortedCourses} // Передаем отсортированные курсы
+       isUserCourse={false} 
+       reverseOrder={false} // Отключаем реверс
+      />
       <S.Footer>
         <S.FooterButton onClick={handleScrollTop}>Наверх ↑</S.FooterButton>
       </S.Footer>
     </Container>
   );
 };
+
 
 export default Main;

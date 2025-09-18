@@ -2,7 +2,7 @@ import * as S from './FooterContent.styled';
 
 type FooterContentProps = {
   onClick?: () => void;
-  text: string; // новый проп
+  text: string; 
 };
 
 function FooterContent({ onClick, text }: FooterContentProps) {

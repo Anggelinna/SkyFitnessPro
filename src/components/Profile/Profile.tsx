@@ -38,8 +38,6 @@ function Profile() {
   const usersCourses = usersData?.user?.selectedCourses ?? [];
   const coursesWithProgress = usersData?.user?.courseProgress ?? [];
 
-  console.log(usersData)
-
   if (!courses) {
     return null;
   }
@@ -77,6 +75,7 @@ function Profile() {
           courses={userCoursesList}
           isUserCourse={true}
           coursesWithProgress={coursesWithProgress}
+          // reverseOrder не указываем - оставляем обычный порядок
         />
       </section>
     </Container>
