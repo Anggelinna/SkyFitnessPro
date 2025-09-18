@@ -41,7 +41,7 @@ const Main: React.FC = () => {
       <CoursesList 
        courses={sortedCourses} // Передаем отсортированные курсы
        isUserCourse={false} 
-       reverseOrder={false} // Отключаем реверс
+       //reverseOrder={false}
       />
       <S.Footer>
         <S.FooterButton onClick={handleScrollTop}>Наверх ↑</S.FooterButton>

@@ -57,7 +57,7 @@ const Card: React.FC<CardProps> = ({
         <S.Difficulty>
           <S.Badge>
             <img src="/difficulty.svg" alt="difficulty icon" />
-            {difficulty}
+            Сложность {/*{difficulty}*/}
           </S.Badge>
         </S.Difficulty>
         {isUserCourse && (
