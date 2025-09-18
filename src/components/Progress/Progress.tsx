@@ -1,19 +1,19 @@
-import { sharedStyles } from "../../sharedStyles"
+import * as S from './Progress.styled';
 
-import ProgressBar from "./ProgressBar"
+type ProgressProps = {
+  percent: number;
 
+};
 
-interface Props {
-  title:    string
-  progress: number
-}
-
-export default function Progress({ title, progress }: Props) {
+const Progress: React.FC<ProgressProps> = ({ percent }) => {
   return (
-    <div className={sharedStyles.progress}>
-      <p className={sharedStyles.text_18_20}>{title || "Прогресс"} {progress}%</p>
+    <S.ProgressBlock>
+      <S.ProgressText>
+        { `Прогресс ${percent}%`}
+      </S.ProgressText>
+      <S.ProgressBar type="range" value={percent} max={100} readOnly />
+    </S.ProgressBlock>
+  );
+};
 
-      <ProgressBar progress={Math.max(1, progress)} />
-    </div>
-  )
-}
+export default Progress;

@@ -1,114 +1,62 @@
-import CoursePage from "./pages/CoursePage/CoursePage"
-import ExercisePage from "./pages/ExercisePage/ExercisePage"
-import ExercisesListPage from "./pages/ExercisesListPage/ExercisesListPage"
-import MainPage from "./pages/MainPage/MainPage"
-import Page404 from "./pages/Page404/Page404"
-import PrivateRoute from "./components/PrivateRoute/PrivateRoute"
-import ProfilePage from "./pages/ProfilePage/ProfilePage"
-import SigningModal from "./pages/SigningModal/SigningModal"
-import WriteProgressPage from "./pages/WriteProgressPage/WriteProgressPage"
+import { Routes, Route } from 'react-router-dom';
+import { RoutesApp } from './const';
+import MainPage from './pages/MainPage/MainPage';
+import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
+import MainLayout from './pages/MainLayout/MainLayout';
+import CoursePage from './pages/CoursePage/CoursePage';
+import SignInPage from './pages/SignInPage/SignInPage';
+import SignUpPage from './pages/SignUpPage/SignUpPage';
+import ProfilPage from './pages/PrivateLayout/PrivateLayout';
+import WorkOutFormPage from './pages/WorkOutsFormPage';
+import WorkOutCoursePage from './pages/WorkOutCoursePage/WorkOutCoursePage';
+import PrivateRoute from './PrivateRoute';
+import PrivateLayout from './pages/PrivateLayout/PrivateLayout';
+import MainCourseProvider from './context/MainCourseProvider';
 
-import { createBrowserRouter, NonIndexRouteObject, RouterProvider } from "react-router-dom"
-import { UserContextValue, useUserContext } from "./context/UserContext/UserContext"
-import pages from "./data/pages"
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Публичные страницы */}
+      <Route
+        element={
+          <MainCourseProvider>
+            <MainLayout />
+          </MainCourseProvider>
+        }
+      >
+        <Route path={RoutesApp.MAIN} element={<MainPage />} />
+        <Route path="/course/:courseId" element={<CoursePage />} />
+      </Route>
 
-import { coursesAPI } from "./api/coursesApi"
-
-const signingRouterData = [
-  {
-    path: pages.SIGN_IN,
-    element: <SigningModal mode="signIn" />,
-  },
-  {
-    path: pages.SIGN_UP,
-    element: <SigningModal mode="signUp" />,
-  },
-  {
-    path: pages.SIGN_OUT,
-    element: <SigningModal mode="signOut" />,
-  },
-  {
-    path: pages.SIGNING,
-    element: <SigningModal mode="signIn" />,
-  },
-]
-
-const choosingTrainRouterData = (userContext: UserContextValue): NonIndexRouteObject => ({
-  path: pages.CHOOSE,
-  element: <ExercisesListPage />,
-  async loader({ params }) {
-    if (params.id) {
-      return coursesAPI.getWorkoutsIntoCourse(params.id, userContext.uid)
-    }
-    return []
-  },
-})
-
-const router = (userContext: UserContextValue) => createBrowserRouter([
-  {
-    path: pages.MAIN,
-    element: <MainPage />,
-    loader: async () => coursesAPI.getCourses(userContext.uid),
-    children: [...signingRouterData, choosingTrainRouterData(userContext)],
-  },
-  {
-    path: pages.COURSES,
-    element: <MainPage />,
-    loader: async () => coursesAPI.getCourses(userContext.uid),
-    children: [...signingRouterData, choosingTrainRouterData(userContext)],
-  },
-  {
-    path: pages.COURSE,
-    element: <CoursePage />,
-    async loader({ params }) {
-      if (params.id) {
-        return coursesAPI.getCourse(params.id, userContext.uid)
-      }
-      return null
-    },
-    children: [...signingRouterData, choosingTrainRouterData(userContext)],
-  },
-  {
-    element: <PrivateRoute />,
-    children: [
-      {
-        path: pages.WORKOUT,
-        element: <ExercisePage />,
-        async loader({ params }) {
-          if (params.courseId && params.workoutId) {
-            return coursesAPI.getWorkout(params.courseId, params.workoutId, userContext.uid)
+      {/* Приватные страницы */}
+      <Route element={<PrivateRoute />}>
+        <Route
+          element={
+            <MainCourseProvider>
+              <PrivateLayout />
+            </MainCourseProvider>
           }
-          return null
-        },
-        children: [{
-          path: pages.WRITE,
-          element: <WriteProgressPage />,
-          async loader({ params }) {
-            if (params.courseId && params.workoutId) {
-              return coursesAPI.getWorkout(params.courseId, params.workoutId, userContext.uid)
-            }
-            return null
-          },
-        }],
-      },
-      {
-        path: pages.PROFILE,
-        element: <ProfilePage />,
-        async loader() {
-          return coursesAPI.getCourses(userContext.uid)
-        },
-        children: [choosingTrainRouterData(userContext)],
-      },
-    ],
-  },
-  {
-    path: pages.NOT_FOUND,
-    element: <Page404 />,
-  },
-])
+        >
+          <Route path={RoutesApp.PROFILE} element={<ProfilPage />} />
+          <Route
+            path="/course/:courseId/workouts/:workoutId"
+            element={<WorkOutCoursePage />}
+          />
+          <Route
+            path="/course/:courseId/workouts"
+            element={<WorkOutFormPage />}
+          />
+        </Route>
+      </Route>
 
-export default function AppRoutes() {
-  const userContext = useUserContext()
+      {/* Авторизация */}
+      <Route path={RoutesApp.SIGN_IN} element={<SignInPage />} />
+      <Route path={RoutesApp.SIGN_UP} element={<SignUpPage />} />
 
-  return <RouterProvider router={router(userContext)} />
+      {/* 404 */}
+      <Route path={RoutesApp.NOT_FOUND} element={<NotFoundPage />} />
+    </Routes>
+  );
 }
+
+export default AppRoutes;
