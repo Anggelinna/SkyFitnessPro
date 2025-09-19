@@ -26,7 +26,7 @@ const Card: React.FC<CardProps> = ({
     nameRU,
     durationInDays,
     dailyDurationInMinutes,
-    difficulty,
+   // difficulty,
   } = course;
   const srcPath = getCourseImage(nameEN);
 
